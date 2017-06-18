@@ -1,0 +1,972 @@
+[
+    {
+        "id": "f6f6c922.6dfe5",
+        "type": "http in",
+        "z": "9fb6cd0f.993768",
+        "name": "BOT Home Page",
+        "url": "/tj",
+        "method": "get",
+        "swaggerDoc": "",
+        "x": 153.33334350585938,
+        "y": 117.25,
+        "wires": [
+            [
+                "39df2c46.6a879c"
+            ]
+        ]
+    },
+    {
+        "id": "39df2c46.6a879c",
+        "type": "template",
+        "z": "9fb6cd0f.993768",
+        "name": "Conversation BOT Template",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "<html>\n  <head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n       <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\n    <title>\n\t  Ask TJBOT \n\t</title>\n\n  </head>\n  <body>\n\t<link rel=\"stylesheet\"\n        type=\"text/css\"\n        href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css\" />\n    <div class=\"container\">\n      <div id=\"no-script\"class=\"bg-info\">\n        THIS APP works only in CHROME desktop with js enabled!\n      </div>\n      <div id=\"id_contextdump\"></div>\n\n      <h3>TJBot in Chrome : Hotword is \"Watson\" <br>Say Watson, what's the time</h3>\n      <div id=id_botchathistory>\n\t  </div>\n\t  start:<img alt=\"Start\" onclick=\"keepgoing =true; recognition.start();\" id=\"start_img\">\n\t  stop:<img alt=\"Stop\" onclick=\" keepgoing =false; recognition.stop();\" id=\"stop_img\">\n\t  <div>\n\t      \n            <label for=\"id_chattext\">Your Input: </label>\n            <input type=\"text\" name=\"chattext\" id=\"id_chattext\">\n               <button onclick=\"javascript:onChatClick()\">Send</button>\n            <br>\n            <div id=\"text\">Connecting... to ws/audio</div>\n            <audio id=\"output\"></audio>\n\n\t  </div>\n\t  Note: Its contantly lisiting unless \"Watson stop\" is detected or the stop button is clicked.\n    </div>\n\n    <script type=\"text/javascript\" src=\"https://code.jquery.com/jquery-2.1.4.min.js\"></script>\n    <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js\"></script>\n    <script type=\"text/javascript\">\n    \n    var socketaddy = \"wss://\" + window.location.host + \"/ws/tjaudio\";\n    var myevent=\"\";\n  var     keepgoing = true;\n  var starttime =0;\n   var text = document.getElementById('id_chattext')\n   var ipaddr;\n    $(document).ready(function(){\n        // $.getJSON(\"https://jsonip.com/?callback=?\", function (data) {\n      //  console.log(data);\n        //alert(data.ip);\n         ipaddr =\"192.168.0.1\";// data.ip;// 192.168.0.1\n//    });\n        console.log(\"Websocket start : \"+myevent); \n        text.value = \"Hi\";\n    // onChatClick();\n start_img.src = \"https://www.google.com/intl/en/chrome/assets/common/images/content/mic.gif\"\nstop_img.src = \"https://www.google.com/intl/en/chrome/assets/common/images/content/mic-slash.gif\"\n           recognition.start();\n          javascriptCheck();\n          \t$('#id_contextdump').hide();\n        \n    $(\"#id_chattext\").keyup(function(event){\n    if(event.keyCode == 13){\n        console.log(\"got a return\")\n       onChatClick();\n    }\n});    \n          \t\n          var output = document.getElementById('output')\n      $('#output').on('playing', function () {\n          $('#text').text('Watson talking events. \\n Event: '+myevent )\n          \n      });\n      $('#output').on('ended', function () {\n          $('#text').text('Watson waiting for audio...')\n          //window.location.reload();\n             keepgoing=true;\n             recognition.start(); \n          \n      });\n      sock = new WebSocket(socketaddy);\n      sock.onopen = function(){\n          $('#text').text('Waiting for audio...');\n          console.log(\"Connected websocket\");\n      };\n      sock.onerror = function(){ \n          console.log(\"Websocket error\"); \n      };\n      sock.onclose = function () {\n          $('#text').text('Not connected. Refresh the page?')\n          window.location.reload();\n          \n      }\n      sock.onmessage = function(evt){\n             keepgoing=false;\n             recognition.stop(); \n             start_img.src = \"https://www.google.com/intl/en/chrome/assets/common/images/content/mic.gif\"\n\n        console.log(\"Got Websocket message: \"); \n    \n        output.src = window.URL.createObjectURL(evt.data);\n        output.play();\n      };\t\n          \t\n          \t\n          \t\n      });\n\n      // if javascript is enabled on the browser then can\n      // remove the warning message\n      function javascriptCheck() {\n        $('#no-script').remove();\n      }\n      \n      function createNewDiv(who, message) {\n        console.log('002-001');  \n        var txt = who + ' : ' + message;\n        return $('<div></div>').text(txt);\n      }\n\n      function chat(person, txt) {\n        $('#id_botchathistory').append(createNewDiv(person, txt));\n      }    \n      \n      function processOK(response) {\n        console.log('Got Post Response'+\" time \"+(Date.now()-starttime));\n       console.log(response);\n    //    console.log(response.botresponse.messageout);\n       // console.log(response.botresponse.messageout.output.text);\n        console.log(response.botresponse.messageout.context);\n        chat('Bot', response.botresponse.messageout.output.text); \n        $('#id_contextdump').data('convContext', response.botresponse.messageout.context);\n      }\n      \n      function processNotOK() {\n        chat('Error', 'Error whilst attempting to talk to Bot');\n      }\n      \n      function invokeAjax(message) {\n        var contextdata = $('#id_contextdump').data('convContext');\n    //    console.log('checking stashed context data');\n       console.log(\"Start Posting time \"+(Date.now()-starttime));\n  \n        //var ajaxData = \"msgdata=\" + message;\n        var ajaxData = {};\n        ajaxData.msgdata = message;\n        ajaxData.user= ipaddr;\n          ajaxData.ipaddr= ipaddr;\n        if (contextdata) {\n          ajaxData.context = contextdata;    \n        }\n\n        $.ajax({\n          type: 'POST',\n          url: '/tjchat',\n          data: ajaxData,\n          success: processOK,\n          error: processNotOK\n        });\n      }\n          \n      // User has entered some text.\n      function onChatClick() {\n        console.log('001-001');\n        var txt = $('#id_chattext').val();\n        if (txt == \"\")\n        return;\n        \n        chat('You', txt); \n        invokeAjax(txt);\n        console.log('001-002');\n         $('#id_chattext').val(\"\");\n      }\n      \n\nvar hotword = \"tj\";     \nvar hotword1 = \"dude\"; \nvar hotword2 = \"watson\"; \nvar stopwords = \"tj stop\";  \nvar stopword2 = \"watson stop\";  \n var final_transcript =\"\";     \n     \n var recognition = new webkitSpeechRecognition();\n  recognition.continuous = true;\n  recognition.interimResults = true;\n\n  recognition.onstart = function() {\n    recognizing = false;\n   console.log(\"recognition.onstart\");\n    start_img.src = 'https://www.google.com/intl/en/chrome/assets/common/images/content/mic-animate.gif';\n \n  };    \n  recognition.onerror = function(event) {  \n      start_img.src = \"https://www.google.com/intl/en/chrome/assets/common/images/content/mic.gif\"\n\n      console.log(\"speech Error \"+event);\n  }\n  \n    recognition.onend = function() {\n          start_img.src = \"https://www.google.com/intl/en/chrome/assets/common/images/content/mic.gif\"\n\n    console.log(\"speech onend\");\n    if (  keepgoing)\n      recognition.start();\n    }\n    \n    recognition.onnomatch = function() {\n        console.log('Speech not recognised');\n    }\n\n    \n recognition.onresult = function(event) {\n    var interim_transcript = '';\n  \n    for (var i = event.resultIndex; i < event.results.length; ++i) {\n      if (event.results[i].isFinal &&  keepgoing) {\n        final_transcript = event.results[i][0].transcript;\n      console.log(\"hotword1 = \" +hotword1+\" res = \"+final_transcript.toLowerCase().indexOf(hotword1))\n        \n        if (final_transcript.toLowerCase().indexOf(hotword) >= 0 || final_transcript.toLowerCase().indexOf(hotword1) >= 0 || final_transcript.toLowerCase().indexOf(hotword2) >= 0)\n        {\n          console.log(\"Got the Hotword final \"+\" time \"+(Date.now()-starttime));\n         \n           \n               final_transcript = final_transcript.toLowerCase().replace(hotword, \"\"); \n                final_transcript = final_transcript.toLowerCase().replace(hotword1, \"\"); \n                final_transcript = final_transcript.toLowerCase().replace(hotword2, \"\"); \n                 text.value = final_transcript;\n              console.log(\"Final = \"+ final_transcript);\n            onChatClick();\n            \n        }    \n  final_transcript =\"\";\n  \n  start_img.src = \"https://www.google.com/intl/en/chrome/assets/common/images/content/mic.gif\"\n      } else {\n  console.log(\"interim_transcript = \"+ event.results[i][0].transcript+\" time \"+Date.now())\n  \n        if (final_transcript.toLowerCase().indexOf(hotword) >= 0 || final_transcript.toLowerCase().indexOf(hotword1) >= 0 || final_transcript.toLowerCase().indexOf(hotword2) >= 0)\n       \n        {\n          starttime =     Date.now();\n          console.log(\"Got the Hotword interim \"+ event.results[i][0].transcript);\n         start_img.src = 'https://www.google.com/intl/en/chrome/assets/common/images/content/mic-animate.gif';\n        }  \n        interim_transcript += event.results[i][0].transcript;\n        \n        if (interim_transcript.toLowerCase().indexOf(stopwords) >= 0 || interim_transcript.toLowerCase().indexOf(stopword2) >= 0)\n        {\n            console.log(\"Got the stopwords \"+interim_transcript);\n            keepgoing=false;\n              recognition.stop(); \n              start_img.src = \"https://www.google.com/intl/en/chrome/assets/common/images/content/mic.gif\"\n\n        }    \n        \n      }\n    }\n }\n    \n    </script>\n  </body>\n</html>\n",
+        "x": 409.3333435058594,
+        "y": 116.25,
+        "wires": [
+            [
+                "b2c94706.2d0598"
+            ]
+        ]
+    },
+    {
+        "id": "b2c94706.2d0598",
+        "type": "http response",
+        "z": "9fb6cd0f.993768",
+        "name": "",
+        "x": 623.3333435058594,
+        "y": 117.25,
+        "wires": []
+    },
+    {
+        "id": "5622f118.5f3138",
+        "type": "http in",
+        "z": "9fb6cd0f.993768",
+        "name": "BOT REST API",
+        "url": "/tjchat",
+        "method": "post",
+        "swaggerDoc": "",
+        "x": 161.33334350585938,
+        "y": 202.25,
+        "wires": [
+            [
+                "5720101b.f0def8",
+                "71ccf08c.0c0a08"
+            ]
+        ]
+    },
+    {
+        "id": "285a450b.940c02",
+        "type": "http response",
+        "z": "9fb6cd0f.993768",
+        "name": "",
+        "x": 956.0477600097656,
+        "y": 206.82144165039062,
+        "wires": []
+    },
+    {
+        "id": "5720101b.f0def8",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "Pre Service Processing",
+        "func": "// stash away incoming data\nmsg.mydata = {};\nmsg.mydata.messagein = msg.req.body.msgdata;\nmsg.payload = msg.mydata.messagein;\n\nmsg.params = { \"context\": msg.req.body.context};\nmsg.params = { \n  \"context\": {\n    \"timezone\": \"America/New_York\",\n    \"$timezone\": \"America/New_York\",\n    \"tjroomtemp\": global.get(\"tjroomtemp\"),\n   \"jtroomhumidity\": global.get(\"tjroomhumi\"),\n   \"tjled\":  global.get(\"tjled\"),\n   \"tjarm\": global.get(\"tjarm\")\n  }\n  \n  \n}  \nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 396.3333435058594,
+        "y": 202.25,
+        "wires": [
+            [
+                "cc098674.3f7e38"
+            ]
+        ]
+    },
+    {
+        "id": "abfeefbe.12747",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "Post Service Processing",
+        "func": "msg.mydata.messageout = msg.payload;\n\nmsg.payload = {};\nmsg.payload.botresponse = msg.mydata;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 708.4046936035156,
+        "y": 201.3372802734375,
+        "wires": [
+            [
+                "285a450b.940c02"
+            ]
+        ]
+    },
+    {
+        "id": "71ccf08c.0c0a08",
+        "type": "debug",
+        "z": "9fb6cd0f.993768",
+        "name": "IntoConvo",
+        "active": true,
+        "console": "false",
+        "complete": "payload",
+        "x": 157.83334350585938,
+        "y": 247.75,
+        "wires": []
+    },
+    {
+        "id": "a3f7b748.66056",
+        "type": "comment",
+        "z": "9fb6cd0f.993768",
+        "name": "a little Bot /bot",
+        "info": "",
+        "x": 151.83334350585938,
+        "y": 79,
+        "wires": []
+    },
+    {
+        "id": "ebef6a6e.ab9ae8",
+        "type": "comment",
+        "z": "9fb6cd0f.993768",
+        "name": "Bot Conversation",
+        "info": "",
+        "x": 154.33334350585938,
+        "y": 162.25,
+        "wires": []
+    },
+    {
+        "id": "f4f9b16c.4d06e",
+        "type": "debug",
+        "z": "9fb6cd0f.993768",
+        "name": "fromConvo",
+        "active": true,
+        "console": "false",
+        "complete": "payload",
+        "x": 613.8690490722656,
+        "y": 292.96429443359375,
+        "wires": []
+    },
+    {
+        "id": "475efaa4.0b0f1c",
+        "type": "switch",
+        "z": "9fb6cd0f.993768",
+        "name": "intent = chane color or arm",
+        "property": "payload.intents[0].intent",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "changelightcolor",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "changearmdirection",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "temperature",
+                "vt": "str"
+            },
+            {
+                "t": "cont",
+                "v": "Time",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "outputs": 5,
+        "x": 672.0237121582031,
+        "y": 457.5029602050781,
+        "wires": [
+            [
+                "2b9c29ef.ef5ef6",
+                "8ec5bc72.30d798",
+                "c32b2a93.9bcba8"
+            ],
+            [
+                "44258d61.c3d934",
+                "d1529ce3.0d34",
+                "8ec5bc72.30d798",
+                "c32b2a93.9bcba8"
+            ],
+            [
+                "8ec5bc72.30d798",
+                "c32b2a93.9bcba8"
+            ],
+            [
+                "8ec5bc72.30d798",
+                "c32b2a93.9bcba8"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "b0490c5.84071f",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "LEDRed",
+        "func": "\n// Counter to select from array.\nvar counter1 = context.get('counter1')||0;\ncounter1 = counter1+1;\nif(counter1 > 999) counter1 = 0;\ncontext.set('counter1',counter1);\n\n// Create MQTT message in JSON\nmsg = {\n  payload:\n    {\n      d:{\n        \"action\" : \"ledRED\", \n        \"counter\" : counter1\n      }\n    }\n  \n};\nmsg.eventOrCommandType = \"ledRED\";\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 972.113037109375,
+        "y": 549.9583587646484,
+        "wires": [
+            [
+                "4348724f.3729f4"
+            ]
+        ]
+    },
+    {
+        "id": "9390a44d.efc898",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "LEDBlue",
+        "func": "\nvar counter1 = context.get('counter1')||0;\ncounter1 = counter1+1;\nif(counter1 > 999) counter1 = 0;\ncontext.set('counter1',counter1);\n\n// Create MQTT message in JSON\nvar msg = {\n  payload: \n    {\n      d:{\n        \"action\" : \"ledBLUE\", \n       \"counter\" : counter1\n      }\n    }\n  \n};\nmsg.eventOrCommandType = \"ledBLUE\";\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 970.113037109375,
+        "y": 623.9583587646484,
+        "wires": [
+            [
+                "4348724f.3729f4"
+            ]
+        ]
+    },
+    {
+        "id": "2b9c29ef.ef5ef6",
+        "type": "switch",
+        "z": "9fb6cd0f.993768",
+        "name": "entities = color",
+        "property": "payload.entities[1].value",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "red",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "green",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "blue",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "on",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "off",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "outputs": 6,
+        "x": 634.6130065917969,
+        "y": 582.1012420654297,
+        "wires": [
+            [
+                "b0490c5.84071f"
+            ],
+            [
+                "3fced7d8.26e24"
+            ],
+            [
+                "9390a44d.efc898"
+            ],
+            [
+                "40ad748e.d35924"
+            ],
+            [
+                "c5bc2a9a.a79d08"
+            ],
+            [
+                "62400c3e.67be8c"
+            ]
+        ]
+    },
+    {
+        "id": "62400c3e.67be8c",
+        "type": "debug",
+        "z": "9fb6cd0f.993768",
+        "name": "Colorother",
+        "active": true,
+        "console": "false",
+        "complete": "payload",
+        "x": 586.0416259765625,
+        "y": 670.3154602050781,
+        "wires": []
+    },
+    {
+        "id": "3fced7d8.26e24",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "LEDGreen",
+        "func": "// Thermostat's location:\nvar longitude1 = -98.49;\nvar latitude1 = 29.42;\n\n// Array of pseudo random temperatures\nvar temp1 = [15,17,18.5,20,21.5,23,24,22.2,19,18];\n\n// Array of pseudo random relative humidities\nvar humidity1 = [50,55,61,68,65,60,53,49,45,47];\n\n// Counter to select from array.\nvar counter1 = context.get('counter1')||0;\ncounter1 = counter1+1;\nif(counter1 > 999) counter1 = 0;\ncontext.set('counter1',counter1);\n\n// Create MQTT message in JSON\nmsg = {\n  payload: \n    {\n      d:{\n        \"action\" : \"ledGREEN\", \n             \"counter\" : counter1\n        // not use old for testing\n  // //   \"increment\": 0,\n       // \"interval\": 250,\n    //    \"stopat\": 1501,\n      //  \"motorSpin\": 1800,\n        //\"turn\" : 500,\n//        \"temp\" : temp1[counter1],\n  //      \"humidity\" : humidity1[counter1],\n    //    \"location\" :\n      //  {\n        //  \"longitude\" : longitude1,\n         // \"latitude\" : latitude1\n    //    },\n      }\n    }\n  \n};\nmsg.eventOrCommandType = \"ledGREEN\";\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 980.863037109375,
+        "y": 587.4583587646484,
+        "wires": [
+            [
+                "4348724f.3729f4"
+            ]
+        ]
+    },
+    {
+        "id": "44258d61.c3d934",
+        "type": "switch",
+        "z": "9fb6cd0f.993768",
+        "name": "entities = arm / Wave / Up / Forward",
+        "property": "payload.entities[0].value",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "Backward",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "Forward",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "Raise",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "Wave",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "outputs": 5,
+        "x": 653.5415954589844,
+        "y": 829.6012725830078,
+        "wires": [
+            [
+                "f0e5ce3.d635eb"
+            ],
+            [
+                "f76de094.c87f08"
+            ],
+            [
+                "2a6609f2.937d66"
+            ],
+            [
+                "76e48211.bfda9c"
+            ],
+            [
+                "baed17ff.6055c",
+                "76e48211.bfda9c"
+            ]
+        ]
+    },
+    {
+        "id": "f0e5ce3.d635eb",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "ArmBACK",
+        "func": "\n\n// Counter to select from array.\nvar counter1 = context.get('counter1')||0;\ncounter1 = counter1+1;\nif(counter1 > 999) counter1 = 0;\ncontext.set('counter1',counter1);\n\n// Create MQTT message in JSON\nmsg = {\n  payload: \n    {\n      d:{\n          \"action\" : \"armBACK\",  \n          \"motorSpin\": 500, // Range is 500 to 20000\n          \"counter\" : counter1\n\n      }\n    }\n  \n};\nmsg.eventOrCommandType = \"armBACK\";\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 992.1843872070312,
+        "y": 787.6726989746094,
+        "wires": [
+            [
+                "4348724f.3729f4"
+            ]
+        ]
+    },
+    {
+        "id": "f76de094.c87f08",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "ArmForward",
+        "func": "\n\n// Counter to select from array.\nvar counter1 = context.get('counter1')||0;\ncounter1 = counter1+1;\nif(counter1 > 999) counter1 = 0;\ncontext.set('counter1',counter1);\n\n// Create MQTT message in JSON\nmsg = {\n  payload: \n    {\n      d:{\n          \"action\" : \"armFORWARD\",  \n          \"motorSpin\": 2000, // Range is 500 to 20000\n\n          \"counter\" : counter1\n\n      }\n    }\n  \n};\nmsg.eventOrCommandType = \"armFORWARD\";\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 982.962158203125,
+        "y": 832.8949279785156,
+        "wires": [
+            [
+                "4348724f.3729f4"
+            ]
+        ]
+    },
+    {
+        "id": "76e48211.bfda9c",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "ArmWAVE",
+        "func": "\n// Counter to select from array.\nvar counter1 = context.get('counter1')||0;\ncounter1 = counter1+1;\nif(counter1 > 999) counter1 = 0;\ncontext.set('counter1',counter1);\n\n// Create MQTT message in JSON\nmsg = {\n  payload: \n    {\n      d:{\n          \"action\" : \"armWAVE\",  \n          \"counter\" : counter1\n      }\n    }\n  \n};\nmsg.eventOrCommandType = \"armWAVE\";\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 974.6843872070312,
+        "y": 921.2560119628906,
+        "wires": [
+            [
+                "8aba3e00.fcf5e8",
+                "4348724f.3729f4"
+            ]
+        ]
+    },
+    {
+        "id": "2a6609f2.937d66",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "ArmUP",
+        "func": "\n\n// Counter to select from array.\nvar counter1 = context.get('counter1')||0;\ncounter1 = counter1+1;\nif(counter1 > 999) counter1 = 0;\ncontext.set('counter1',counter1);\n\n// Create MQTT message in JSON\nmsg = {\n  payload: \n    {\n      d:{\n          \"action\" : \"armUP\",  \n          \"motorSpin\": 1500, // Range is 500 to 20000\n\n          \"counter\" : counter1\n\n      }\n    }\n  \n};\nmsg.eventOrCommandType = \"armUP\";\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 964.5177612304688,
+        "y": 873.2282409667969,
+        "wires": [
+            [
+                "4348724f.3729f4"
+            ]
+        ]
+    },
+    {
+        "id": "baed17ff.6055c",
+        "type": "debug",
+        "z": "9fb6cd0f.993768",
+        "name": "ArmOther",
+        "active": true,
+        "console": "false",
+        "complete": "payload",
+        "x": 718.1845092773438,
+        "y": 894.4227600097656,
+        "wires": []
+    },
+    {
+        "id": "8aba3e00.fcf5e8",
+        "type": "debug",
+        "z": "9fb6cd0f.993768",
+        "name": "Wave",
+        "active": true,
+        "console": "false",
+        "complete": "payload",
+        "x": 976.9345092773438,
+        "y": 1038.1727600097656,
+        "wires": []
+    },
+    {
+        "id": "d1529ce3.0d34",
+        "type": "debug",
+        "z": "9fb6cd0f.993768",
+        "name": "Wave",
+        "active": true,
+        "console": "false",
+        "complete": "payload",
+        "x": 628.1845092773438,
+        "y": 998.1727600097656,
+        "wires": []
+    },
+    {
+        "id": "4348724f.3729f4",
+        "type": "delay",
+        "z": "9fb6cd0f.993768",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "0",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "x": 1161.488037109375,
+        "y": 640.8958435058594,
+        "wires": [
+            [
+                "2e8c447.ec3ce3c"
+            ]
+        ]
+    },
+    {
+        "id": "2e8c447.ec3ce3c",
+        "type": "ibmiot out",
+        "z": "9fb6cd0f.993768",
+        "authentication": "boundService",
+        "apiKey": "",
+        "outputType": "cmd",
+        "deviceId": "tjbot",
+        "deviceType": "tjbot",
+        "eventCommandType": "turnRight",
+        "format": "json",
+        "data": "temp:10",
+        "qos": "1",
+        "name": "Send CMD to TJBot",
+        "service": "registered",
+        "x": 1192.113037109375,
+        "y": 527.4583435058594,
+        "wires": []
+    },
+    {
+        "id": "a8debefb.34d8a8",
+        "type": "comment",
+        "z": "9fb6cd0f.993768",
+        "name": "Delay to day the response",
+        "info": "",
+        "x": 1198.363037109375,
+        "y": 596.2083435058594,
+        "wires": []
+    },
+    {
+        "id": "3f726c05.7dd84c",
+        "type": "websocket out",
+        "z": "9fb6cd0f.993768",
+        "name": "",
+        "server": "28cb4b0e.f35e9c",
+        "client": "",
+        "x": 1497.380859375,
+        "y": 405.40478515625,
+        "wires": []
+    },
+    {
+        "id": "19dd8de5.d89ff2",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "",
+        "func": "msg.payload = msg.speech;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1306.108154296875,
+        "y": 405.79437255859375,
+        "wires": [
+            [
+                "3f726c05.7dd84c"
+            ]
+        ]
+    },
+    {
+        "id": "dcd16909.ea3918",
+        "type": "watson-text-to-speech",
+        "z": "9fb6cd0f.993768",
+        "name": "TTS",
+        "lang": "en-US",
+        "langhidden": "en-US",
+        "langcustom": "NoCustomisationSetting",
+        "langcustomhidden": "",
+        "voice": "en-US_MichaelVoice",
+        "voicehidden": "en-US_MichaelVoice",
+        "format": "audio/wav",
+        "password": "",
+        "x": 1144.4329223632812,
+        "y": 407.83331298828125,
+        "wires": [
+            [
+                "19dd8de5.d89ff2"
+            ]
+        ]
+    },
+    {
+        "id": "8ec5bc72.30d798",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "text output",
+        "func": "msg.payload = msg.payload.output.text[0];\nreturn msg;\n\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 955.8095703125,
+        "y": 407.4048156738281,
+        "wires": [
+            [
+                "dcd16909.ea3918",
+                "a2570d5d.8ad808"
+            ]
+        ]
+    },
+    {
+        "id": "2d49275c.6c91f8",
+        "type": "comment",
+        "z": "9fb6cd0f.993768",
+        "name": "voice to web chatbot",
+        "info": "",
+        "x": 580.9524230957031,
+        "y": 1070.7620391845703,
+        "wires": []
+    },
+    {
+        "id": "c32b2a93.9bcba8",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "ConfirmWithVoicetoTJ",
+        "func": "\n// Create MQTT message in JSON\nvar newmsg = {\n  payload: \n    {\n      d:{\n          \"action\" : \"tjSPEAK\",  \n          \"words\": msg.payload.output.text[0]\n      }\n    }\n  \n};\nnewmsg.eventOrCommandType = \"tjSPEAK\";\nreturn newmsg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1001.9841003417969,
+        "y": 468.261962890625,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "40ad748e.d35924",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "LEDOn",
+        "func": "\n// Counter to select from array.\nvar counter1 = context.get('counter1')||0;\ncounter1 = counter1+1;\nif(counter1 > 999) counter1 = 0;\ncontext.set('counter1',counter1);\n\n// Create MQTT message in JSON\nvar msg = {\n  payload: \n    {\n      d:{\n        \"action\"  : \"ledON\", \n        \"color\"   : 0x000000, //GRB\n        \"counter\" : counter1\n      }\n    }\n  \n};\nmsg.eventOrCommandType = \"ledON\";\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 963.0950927734375,
+        "y": 666.8333435058594,
+        "wires": [
+            [
+                "4348724f.3729f4"
+            ]
+        ]
+    },
+    {
+        "id": "c5bc2a9a.a79d08",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "LEDOff",
+        "func": "\n// Counter to select from array.\nvar counter1 = context.get('counter1')||0;\ncounter1 = counter1+1;\nif(counter1 > 999) counter1 = 0;\ncontext.set('counter1',counter1);\n\n// Counter to select from array.\nvar counter1 = context.get('counter1')||0;\ncounter1 = counter1+1;\nif(counter1 > 9) counter1 = 0;\ncontext.set('counter1',counter1);\n\n// Create MQTT message in JSON\nmsg = {\n  payload: \n    {\n      d:{\n        \"action\" : \"ledOff\", \n         \"counter\" : counter1\n      }\n    }\n  \n};\nmsg.eventOrCommandType = \"ledOFF\";\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 959.53955078125,
+        "y": 709.3888854980469,
+        "wires": [
+            [
+                "4348724f.3729f4"
+            ]
+        ]
+    },
+    {
+        "id": "a2570d5d.8ad808",
+        "type": "debug",
+        "z": "9fb6cd0f.993768",
+        "name": "TTS",
+        "active": true,
+        "console": "false",
+        "complete": "payload",
+        "x": 1215.952392578125,
+        "y": 466.83331298828125,
+        "wires": []
+    },
+    {
+        "id": "496dbd92.8370e4",
+        "type": "ibmiot in",
+        "z": "9fb6cd0f.993768",
+        "authentication": "boundService",
+        "apiKey": "",
+        "inputType": "evt",
+        "deviceId": "",
+        "applicationId": "",
+        "deviceType": "+",
+        "eventType": "+",
+        "commandType": "",
+        "format": "json",
+        "name": "FromTJ",
+        "service": "registered",
+        "allDevices": true,
+        "allApplications": "",
+        "allDeviceTypes": true,
+        "allEvents": true,
+        "allCommands": "",
+        "allFormats": true,
+        "qos": 0,
+        "x": 1165.4762878417969,
+        "y": 82.78571319580078,
+        "wires": [
+            [
+                "2c61e053.3a07",
+                "7d83a8a6.66568"
+            ]
+        ]
+    },
+    {
+        "id": "c1caa034.970588",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "TemperatureHumidity on Context",
+        "func": "msg.temperature = msg.payload.temperature;\nmsg.humidity = msg.payload.humidity;\n\nmsg.temperature = msg.payload.temperature;\nmsg.humidity = msg.payload.humidity;\n\nglobal.set(\"tjroomtemp\",msg.payload.temperature);\nglobal.set(\"tjroomhumi\",msg.payload.humidity);\nglobal.set(\"tjled\",msg.payload.led);\nglobal.set(\"tjarm\",msg.payload.arm);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1407.5595397949219,
+        "y": 140.32939910888672,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2c61e053.3a07",
+        "type": "switch",
+        "z": "9fb6cd0f.993768",
+        "name": "",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "cont",
+                "v": "dht",
+                "vt": "str"
+            },
+            {
+                "t": "cont",
+                "v": "tjlisten",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "outputs": 3,
+        "x": 1163.7502136230469,
+        "y": 151.5992889404297,
+        "wires": [
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "f92bf7ab.3494d8",
+        "type": "inject",
+        "z": "9fb6cd0f.993768",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "x": 1176.1905212402344,
+        "y": 204.57144165039062,
+        "wires": [
+            [
+                "b44ce9ed.ee7a8"
+            ]
+        ]
+    },
+    {
+        "id": "b44ce9ed.ee7a8",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "Get Context",
+        "func": "msg.temperature = global.get(\"tjroomtemp\");\nmsg.humidity = global.get(\"tjroomhumi\");\nmsg.led = global.get(\"tjled\");\nmsg.led = global.get(\"tjarm\");\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1354.0476989746094,
+        "y": 205.642822265625,
+        "wires": [
+            [
+                "d0f92180.ec5da"
+            ]
+        ]
+    },
+    {
+        "id": "7d83a8a6.66568",
+        "type": "debug",
+        "z": "9fb6cd0f.993768",
+        "name": "",
+        "active": false,
+        "console": "false",
+        "complete": "false",
+        "x": 1346.58740234375,
+        "y": 84.14679718017578,
+        "wires": []
+    },
+    {
+        "id": "d0f92180.ec5da",
+        "type": "debug",
+        "z": "9fb6cd0f.993768",
+        "name": "",
+        "active": true,
+        "console": "false",
+        "complete": "true",
+        "x": 1522.6193542480469,
+        "y": 205.642822265625,
+        "wires": []
+    },
+    {
+        "id": "a3578604.990798",
+        "type": "inject",
+        "z": "9fb6cd0f.993768",
+        "name": "\"What is the temperature\"",
+        "topic": "",
+        "payload": "\"What is the temperature\"",
+        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "x": 129.28567504882812,
+        "y": 308,
+        "wires": [
+            [
+                "2280db9f.85f0ec"
+            ]
+        ]
+    },
+    {
+        "id": "c8fa52e4.906ef",
+        "type": "inject",
+        "z": "9fb6cd0f.993768",
+        "name": "\"What is the LED on?",
+        "topic": "",
+        "payload": "\"What is the LED on?\"",
+        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "x": 105,
+        "y": 363.71435546875,
+        "wires": [
+            [
+                "2280db9f.85f0ec"
+            ]
+        ]
+    },
+    {
+        "id": "2280db9f.85f0ec",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "words",
+        "func": "var newmsg = { \"payload\":{}}\n\nnewmsg.payload.words = msg.payload;\nreturn newmsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 80.545654296875,
+        "y": 448.4088134765625,
+        "wires": [
+            [
+                "7bc0d6f9.58fa08"
+            ]
+        ]
+    },
+    {
+        "id": "cf55e7ac.ded13",
+        "type": "inject",
+        "z": "9fb6cd0f.993768",
+        "name": "\"Where is your Arm?\"",
+        "topic": "",
+        "payload": "\"Where is your Arm?\"",
+        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "x": 121.65673828125,
+        "y": 402.85321044921875,
+        "wires": [
+            [
+                "2280db9f.85f0ec"
+            ]
+        ]
+    },
+    {
+        "id": "7bc0d6f9.58fa08",
+        "type": "function",
+        "z": "9fb6cd0f.993768",
+        "name": "Pre Service Processing",
+        "func": "// stash away incoming data\n\n//msg.params = { \"context\": msg.req.body.context};\nmsg.params = { \n  \"context\": {\n    \"timezone\": \"America/New_York\",\n    \"$timezone\": \"America/New_York\",\n    \"tjroomtemp\": global.get(\"tjroomtemp\"),\n   \"jtroomhumidity\": global.get(\"tjroomhumi\"),\n   \"tjled\":  global.get(\"tjled\"),\n   \"tjarm\": global.get(\"tjarm\")\n  }\n  \n}  \nmsg.payload = msg.payload.words;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 139.42861938476562,
+        "y": 479.28570556640625,
+        "wires": [
+            [
+                "cc098674.3f7e38"
+            ]
+        ]
+    },
+    {
+        "id": "cc098674.3f7e38",
+        "type": "watson-conversation-v1",
+        "z": "9fb6cd0f.993768",
+        "name": "Coversatio-41",
+        "workspaceid": "e5823f38-ad47-4647-b088-d025a365d3c6",
+        "multiuser": false,
+        "context": true,
+        "x": 393,
+        "y": 292,
+        "wires": [
+            [
+                "f4f9b16c.4d06e",
+                "abfeefbe.12747",
+                "475efaa4.0b0f1c"
+            ]
+        ]
+    },
+    {
+        "id": "37419038.552d4",
+        "type": "inject",
+        "z": "9fb6cd0f.993768",
+        "name": "Set to Green",
+        "topic": "",
+        "payload": "\"TJ, Set light to Green\"",
+        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "x": 116,
+        "y": 541,
+        "wires": [
+            [
+                "cc098674.3f7e38"
+            ]
+        ]
+    },
+    {
+        "id": "d68f7f7.ab3238",
+        "type": "inject",
+        "z": "9fb6cd0f.993768",
+        "name": "Set to Blue",
+        "topic": "",
+        "payload": "\"Set light to blue\"",
+        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "x": 93.875,
+        "y": 584.1875,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "9fe22209.72cfe8",
+        "type": "inject",
+        "z": "9fb6cd0f.993768",
+        "name": "Make a Wave",
+        "topic": "",
+        "payload": "\"Watson wave your Arm\"",
+        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "x": 118.125,
+        "y": 627.6875,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "28cb4b0e.f35e9c",
+        "type": "websocket-listener",
+        "z": "",
+        "path": "/ws/tjaudio",
+        "wholemsg": "false"
+    }
+]
