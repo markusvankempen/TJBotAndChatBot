@@ -3,10 +3,10 @@
 markus van Kempen - mvk@ca.ibm.com
 
 Sends mqtt message to IoT and Waits for commands to controls the 
-TJ servo motor and led 
+TJ servo motor and led ... and sends listening text to WIOT
 
 version 20170613 
-Note: Stand alone MQTT control no need for Conversion of TJBot Lib
+Note: MQTT controler program - mcp 
 **********************************************************************/
 var iotf = require("../iot-nodejs/.");
 var config = require("./device.json");
@@ -66,6 +66,8 @@ var NUM_LEDS = 1;        // Number of LEDs
 //var tjled   = new TJBot(['led'], {log: {level: 'debug'}}, {});
 //var tjservo = new TJBot(['servo'], {log: {level: 'debug'}}, {});
 
+var TJLed="off";
+var TJArm="raised";
 
 //var mincycle = 500; var maxcycle = 2300 ;
 //var dutycycle = mincycle;
@@ -103,8 +105,11 @@ deviceClient.on('connect', function(){
     console.log("connected");
     setInterval(function function_name () {
 	readout = dht.read();
-	mystr = ',"temperature":' +readout.temperature.toFixed(2)+', "humidity": ' + readout.humidity.toFixed(2);
+	mystr = ',"arm":"'+TJArm+'","led":"'+TJLed+'","temperature":' +readout.temperature.toFixed(2)+', "humidity": ' + readout.humidity.toFixed(2);
     	i++;
+        	if (i>50000)
+			i=0;
+
     	deviceClient.publish('dht', 'json', '{"value":'+i+mystr+'}', 2);
     },5000);
 });
@@ -133,15 +138,18 @@ myjson = JSON.parse(payload);
    if(commandName === "armFORWARD") {
       console.log("armForward = 2000");    
  //     motor.servoWrite(2000); //open
+TJArm = "lower";
  	tj.lowerArm();
     } else if(commandName === "armUP") {
       console.log("armUP = 1000 ");
 //      motor.servoWrite(1000); //open
 	tj.raiseArm();
-
+TJArm = "raised";
 
     } else if(commandName === "armBACK") {
    console.log("armBACK = 500") ;  
+TJArm = "back";
+
    // motor.servoWrite(500); //open
 	 tj.armBack();
     } else if(commandName === "armMOVE") {
@@ -150,6 +158,7 @@ myjson = JSON.parse(payload);
         //motor.servoWrite(myjson.d.motorSpin); //open
 
     } else if(commandName === "armWAVE") {
+TJArm = "wave";
      console.log("armWave");
 tj.wave();
 /*
@@ -211,21 +220,26 @@ tj.listen(function(msg) {
 
 function setLED(value,mycolor,myvalue) {
     if (value == "on") {
+	TJLed="on";
 	tj.shine('white');
     //    color[0] = 0xffffff ;
     } else if (value == "blue"){
 	tj.shine('blue');
+TJLed="blue";
        // color[0] = 0x0000ff ;
     } else if (value == "red"){
+TJLed="red";
 	tj.shine('red');
         //color[0] = 0x00ff00 ;
     } else if (value == "green"){
+TJLed="green";
 	tj.shine('green');
        // color[0] = 0xff0000 ;
     } else if (value == "led"){
 	tj.shine(myvalue);      
  // color[0] = mycolor ;
     }else {
+TJLed="off";
 	tj.shine('off');
         //color[0] = 0x000000 ;
     }
